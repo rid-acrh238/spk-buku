@@ -1,0 +1,61 @@
+import express from "express";
+
+// 1. Import Sub-Routes yang tadi kita buat
+import authRoutes from "./authRoutes.js";
+import bukuRoutes from "./bukuRoutes.js";
+
+// 2. Import Controller yang belum punya route file sendiri (SPK & Laporan)
+import { hitungSAW } from "../controllers/SPKController.js";
+import { simpanLaporan, getLaporan, hapusLaporan } from "../controllers/LaporanController.js";
+
+import { verifyToken } from "../middleware/authMiddleware.js";
+
+const router = express.Router();
+
+// --- GABUNGKAN SUB-ROUTES ---
+// Artinya: route di authRoutes & bukuRoutes langsung dipakai di sini
+router.use(authRoutes);
+router.use(bukuRoutes);
+
+
+// --- ROUTE SPK & LAPORAN ---
+// (Masih manual di sini karena belum ada file spkRoutes.js / laporanRoutes.js)
+router.get('/hitung-saw' , verifyToken, hitungSAW);
+
+router.post('/laporan', verifyToken, simpanLaporan);
+router.get('/laporan', verifyToken, getLaporan);
+router.delete('/laporan/:id', verifyToken, hapusLaporan);
+
+export default router;
+
+
+// import express from "express";
+// import { Login, Register } from "../controllers/AuthController.js";
+// import { getBuku, getBukuById, createBuku, updateBuku, deleteBuku } from "../controllers/BukuController.js";
+// import { simpanLaporan, getLaporan, hapusLaporan } from "../controllers/LaporanController.js";
+// import { hitungSAW } from "../controllers/SPKController.js";
+// // Import middleware cek login jika sudah ada
+// // import { verifyToken } from "../middleware/authMiddleware.js"; 
+
+// const router = express.Router();
+
+// // --- Auth Routes ---
+// router.post('/login', Login);
+// router.post('/register', Register); // Buat controller register jika perlu
+
+// // --- Buku Routes ---
+// router.get('/buku', getBuku);
+// router.get('/buku/:id', getBukuById); // Buat ambil data pas mau edit
+// router.post('/buku', createBuku);
+// router.patch('/buku/:id', updateBuku); // Pakai PATCH atau PUT buat update
+// router.delete('/buku/:id', deleteBuku);
+
+// // --- SPK Routes ---
+// router.get('/hitung-saw', hitungSAW);   // Hitung SPK
+
+// // --- ROUTE LAPORAN SIMPEL ---
+// router.post('/laporan', simpanLaporan); // Buat nyimpen
+// router.get('/laporan', getLaporan);     // Buat nampilin di tabel riwayat
+// router.delete('/laporan/:id', hapusLaporan); // Buat hapus
+
+// export default router;
