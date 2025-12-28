@@ -8,10 +8,14 @@ dotenv.config();
 // LOGIN
 export const Login = async (req, res) => {
     try {
+        console.log("📥 Data masuk:", req.body);
         const user = await UserModel.findAll({ where: { username: req.body.username } });
+         console.log("🔍 Hasil cari di DB:", user); 
         const match = await bcrypt.compare(req.body.password, user[0].password);
         if(!match) return res.status(400).json({msg: "Password Salah"});
-
+        console.log("❌ Password Salah!");
+        
+        
         const userId = user[0].id_user;
         const username = user[0].username;
         const nama = user[0].nama_lengkap;
