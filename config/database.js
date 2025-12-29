@@ -20,6 +20,7 @@ const db = mysql.createPool({
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0,
+    connectTimeout: 60000,
     // SSL Wajib buat TiDB, tapi Error buat XAMPP.
     // Kita aktifkan SSL CUMA kalau lagi di Vercel (DB_HOST bukan localhost)
     ssl: process.env.DB_HOST ? {
