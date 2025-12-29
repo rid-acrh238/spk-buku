@@ -34,7 +34,7 @@ app.use(cors({
 }));
 
 // MENANGANI PREFLIGHT REQUEST (PENTING BUAT VERCEL)
-app.options('*', cors()); 
+app.options('/(.*)', cors()); 
 
 // ... lanjut middleware express.json dll ...
 
