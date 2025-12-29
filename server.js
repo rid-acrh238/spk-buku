@@ -14,20 +14,20 @@ const PORT = process.env.PORT || 5000;
 // Izinkan Frontend (Vite) mengakses Backend ini
 // Origin 'http://localhost:5173' adalah port default Vite. 
 // Kalau port Vite kamu beda, sesuaikan di sini.
+app.use(cors({
+    origin: [
+        'http://localhost:5173', 
+        'https://spk-frontend-eta.vercel.app' // 
+    ], 
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE']
+}));
+
 // app.use(cors({
 //     // Izinkan Frontend Vercel DAN Localhost
-//     origin: true [
-//         'http://localhost:5173', 
-//         'https://spk-frontend-eta.vercel.app' // Nanti kita update ini setelah frontend deploy
-//     ], 
+//     origin: true, 
 //     credentials: true
 // }));
-
-app.use(cors({
-    // Izinkan Frontend Vercel DAN Localhost
-    origin: true, 
-    credentials: true
-}));
 
 // Agar backend bisa membaca data JSON yang dikirim dari Frontend
 // app.use(express.json());
