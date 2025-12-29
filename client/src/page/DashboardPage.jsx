@@ -270,9 +270,16 @@ const ViewDashboard = () => {
 };
 
 // 2. DATA BUKU VIEW
+
+// 2. DATA BUKU VIEW (DENGAN FITUR INPUT NILAI MANUAL)
 const ViewBuku = () => {
     const [listBuku, setListBuku] = useState([]);
     
+    // --- STATE BARU: UNTUK MODAL PENILAIAN ---
+    const [showModalNilai, setShowModalNilai] = useState(false);
+    const [selectedBuku, setSelectedBuku] = useState(null);
+    const [formNilai, setFormNilai] = useState([]); // Nyimpen data nilai sementara
+
     const fetchBuku = async () => {
         try { const res = await api.get('/buku'); setListBuku(res.data); } 
         catch (error) { console.error(error); }
@@ -280,7 +287,36 @@ const ViewBuku = () => {
 
     useEffect(() => { fetchBuku(); }, []);
 
-    // --- FORM TAMBAH / EDIT (Pakai SweetAlert) ---
+    // --- 1. LOGIC INPUT NILAI (FITUR BARU) ---
+    const handleOpenNilai = async (buku) => {
+        setSelectedBuku(buku);
+        try {
+            // Ambil data nilai yang sudah ada dari backend
+            const res = await api.get(`/nilai/${buku.id_buku}`);
+            setFormNilai(res.data); 
+            setShowModalNilai(true);
+        } catch (err) {
+            Swal.fire('Error', 'Gagal memuat form penilaian. Pastikan Data Kriteria tidak kosong.', 'error');
+        }
+    };
+
+    const handleSaveNilai = async () => {
+        try {
+            await api.post(`/nilai/${selectedBuku.id_buku}`, { nilai_data: formNilai });
+            Swal.fire('Sukses', 'Penilaian berhasil disimpan!', 'success');
+            setShowModalNilai(false);
+        } catch (err) {
+            Swal.fire('Gagal', 'Gagal menyimpan nilai', 'error');
+        }
+    };
+
+    const handleInputChange = (index, value) => {
+        const newForm = [...formNilai];
+        newForm[index].nilai = value;
+        setFormNilai(newForm);
+    };
+
+    // --- 2. LOGIC CRUD BUKU BIASA (DARI KODE KAMU) ---
     const showForm = async (buku = null) => {
         const isEdit = !!buku;
         const { value: formValues } = await Swal.fire({
@@ -307,13 +343,13 @@ const ViewBuku = () => {
         if (formValues) {
             try {
                 if (isEdit) {
-                    await api.patch(`/buku/${buku.id_buku}`, formValues);
+                    await api.patch(`/buku/${buku.id_buku}`, formValues); // Sudah pakai PATCH sesuai server.js
                     Swal.fire('Update Sukses', '', 'success');
                 } else {
                     await api.post('/buku', formValues);
                     Swal.fire('Tambah Sukses', '', 'success');
                 }
-                fetchBuku(); // Refresh Tabel
+                fetchBuku(); 
             } catch (error) {
                 Swal.fire('Error', 'Gagal menyimpan data', 'error');
             }
@@ -330,41 +366,198 @@ const ViewBuku = () => {
     };
 
     return (
-        <div className="bg-white p-6 rounded-2xl shadow-sm">
+        <div className="bg-white p-6 rounded-2xl shadow-sm relative">
+            {/* Header Tabel */}
             <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold text-gray-800">Data Buku</h2>
+                <h2 className="text-2xl font-bold text-gray-800">Data Buku & Penilaian</h2>
                 <button onClick={() => showForm(null)} className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700">
                     <FaPlus /> Tambah Buku
                 </button>
             </div>
+
+            {/* Tabel Data */}
             <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                     <thead>
                         <tr className="bg-gray-100 text-gray-600 text-sm uppercase">
                             <th className="p-3">Judul</th>
                             <th className="p-3">Penulis</th>
-                            <th className="p-3">Stok</th>
-                            <th className="p-3">Aksi</th>
+                            <th className="p-3 text-center w-32">Aksi Dasar</th>
+                            <th className="p-3 text-center w-40">Penilaian (SPK)</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y">
                         {listBuku.map((buku) => (
                             <tr key={buku.id_buku} className="hover:bg-gray-50">
                                 <td className="p-3 font-medium">{buku.judul_buku}</td>
-                                <td className="p-3">{buku.penulis}</td>
-                                <td className="p-3">{buku.stok}</td>
-                                <td className="p-3 flex gap-2">
-                                    <button onClick={() => showForm(buku)} className="text-blue-500 hover:bg-blue-50 p-2 rounded"><FaEdit /></button>
-                                    <button onClick={() => handleDelete(buku.id_buku)} className="text-red-500 hover:bg-red-50 p-2 rounded"><FaTrash /></button>
+                                <td className="p-3 text-gray-600">{buku.penulis}</td>
+                                
+                                {/* Tombol Edit & Hapus */}
+                                <td className="p-3 text-center flex justify-center gap-2">
+                                    <button onClick={() => showForm(buku)} className="text-blue-500 hover:bg-blue-50 p-2 rounded" title="Edit Buku"><FaEdit /></button>
+                                    <button onClick={() => handleDelete(buku.id_buku)} className="text-red-500 hover:bg-red-50 p-2 rounded" title="Hapus Buku"><FaTrash /></button>
+                                </td>
+
+                                {/* Tombol Input Nilai (KUNING) */}
+                                <td className="p-3 text-center">
+                                    <button 
+                                        onClick={() => handleOpenNilai(buku)}
+                                        className="bg-yellow-100 text-yellow-700 px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-yellow-200 flex items-center gap-2 mx-auto transition"
+                                    >
+                                        <FaCalculator /> Input Nilai
+                                    </button>
                                 </td>
                             </tr>
                         ))}
                     </tbody>
                 </table>
             </div>
+
+            {/* --- MODAL POPUP (Overlay) --- */}
+            {showModalNilai && selectedBuku && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                    <motion.div 
+                        initial={{ scale: 0.9, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
+                    >
+                        {/* Header Modal */}
+                        <div className="bg-yellow-500 p-4 text-white flex justify-between items-center">
+                            <h3 className="font-bold text-lg">Penilaian: {selectedBuku.judul_buku}</h3>
+                            <button onClick={() => setShowModalNilai(false)} className="text-white/80 hover:text-white text-2xl">&times;</button>
+                        </div>
+
+                        {/* Body Form */}
+                        <div className="p-6 max-h-[70vh] overflow-y-auto">
+                            <p className="text-sm text-gray-500 mb-4 bg-yellow-50 p-3 rounded border border-yellow-200">
+                                Masukkan nilai riil (Contoh: Harga dalam Rupiah, Tahun Terbit, atau Skala 1-100).
+                            </p>
+                            
+                            <div className="space-y-4">
+                                {formNilai.map((item, index) => (
+                                    <div key={item.id_kriteria}>
+                                        <label className="block text-sm font-bold text-gray-700 mb-1">
+                                            {item.kode_kriteria} - {item.nama_kriteria}
+                                        </label>
+                                        <input 
+                                            type="number" 
+                                            value={item.nilai} 
+                                            onChange={(e) => handleInputChange(index, e.target.value)}
+                                            className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 outline-none"
+                                            placeholder="Masukkan nilai..."
+                                        />
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Footer Modal */}
+                        <div className="p-4 bg-gray-50 text-right border-t flex justify-end gap-2">
+                            <button onClick={() => setShowModalNilai(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-200 rounded-lg font-medium">Batal</button>
+                            <button onClick={handleSaveNilai} className="px-4 py-2 bg-yellow-600 text-white font-bold rounded-lg hover:bg-yellow-700 shadow-lg">Simpan Penilaian</button>
+                        </div>
+                    </motion.div>
+                </div>
+            )}
         </div>
     );
 };
+
+// const ViewBuku = () => {
+//     const [listBuku, setListBuku] = useState([]);
+    
+//     const fetchBuku = async () => {
+//         try { const res = await api.get('/buku'); setListBuku(res.data); } 
+//         catch (error) { console.error(error); }
+//     };
+
+//     useEffect(() => { fetchBuku(); }, []);
+
+//     // --- FORM TAMBAH / EDIT (Pakai SweetAlert) ---
+//     const showForm = async (buku = null) => {
+//         const isEdit = !!buku;
+//         const { value: formValues } = await Swal.fire({
+//             title: isEdit ? 'Edit Buku' : 'Tambah Buku Baru',
+//             html:
+//                 `<input id="swal-judul" class="swal2-input" placeholder="Judul Buku" value="${buku?.judul_buku || ''}">` +
+//                 `<input id="swal-penulis" class="swal2-input" placeholder="Penulis" value="${buku?.penulis || ''}">` +
+//                 `<input id="swal-penerbit" class="swal2-input" placeholder="Penerbit" value="${buku?.penerbit || ''}">` +
+//                 `<input id="swal-tahun" type="number" class="swal2-input" placeholder="Tahun Terbit" value="${buku?.tahun_terbit || ''}">` +
+//                 `<input id="swal-stok" type="number" class="swal2-input" placeholder="Stok" value="${buku?.stok || ''}">`,
+//             focusConfirm: false,
+//             showCancelButton: true,
+//             preConfirm: () => {
+//                 return {
+//                     judul_buku: document.getElementById('swal-judul').value,
+//                     penulis: document.getElementById('swal-penulis').value,
+//                     penerbit: document.getElementById('swal-penerbit').value,
+//                     tahun_terbit: document.getElementById('swal-tahun').value,
+//                     stok: document.getElementById('swal-stok').value
+//                 }
+//             }
+//         });
+
+//         if (formValues) {
+//             try {
+//                 if (isEdit) {
+//                     await api.patch(`/buku/${buku.id_buku}`, formValues);
+//                     Swal.fire('Update Sukses', '', 'success');
+//                 } else {
+//                     await api.post('/buku', formValues);
+//                     Swal.fire('Tambah Sukses', '', 'success');
+//                 }
+//                 fetchBuku(); // Refresh Tabel
+//             } catch (error) {
+//                 Swal.fire('Error', 'Gagal menyimpan data', 'error');
+//             }
+//         }
+//     };
+
+//     const handleDelete = async (id) => {
+//         const result = await Swal.fire({ title: 'Hapus?', icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33' });
+//         if (result.isConfirmed) {
+//             await api.delete(`/buku/${id}`);
+//             fetchBuku();
+//             Swal.fire('Terhapus!', '', 'success');
+//         }
+//     };
+
+//     return (
+//         <div className="bg-white p-6 rounded-2xl shadow-sm">
+//             <div className="flex justify-between items-center mb-6">
+//                 <h2 className="text-2xl font-bold text-gray-800">Data Buku</h2>
+//                 <button onClick={() => showForm(null)} className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700">
+//                     <FaPlus /> Tambah Buku
+//                 </button>
+//             </div>
+//             <div className="overflow-x-auto">
+//                 <table className="w-full text-left border-collapse">
+//                     <thead>
+//                         <tr className="bg-gray-100 text-gray-600 text-sm uppercase">
+//                             <th className="p-3">Judul</th>
+//                             <th className="p-3">Penulis</th>
+//                             <th className="p-3">Stok</th>
+//                             <th className="p-3">Aksi</th>
+//                         </tr>
+//                     </thead>
+//                     <tbody className="divide-y">
+//                         {listBuku.map((buku) => (
+//                             <tr key={buku.id_buku} className="hover:bg-gray-50">
+//                                 <td className="p-3 font-medium">{buku.judul_buku}</td>
+//                                 <td className="p-3">{buku.penulis}</td>
+//                                 <td className="p-3">{buku.stok}</td>
+//                                 <td className="p-3 flex gap-2">
+//                                     <button onClick={() => showForm(buku)} className="text-blue-500 hover:bg-blue-50 p-2 rounded"><FaEdit /></button>
+//                                     <button onClick={() => handleDelete(buku.id_buku)} className="text-red-500 hover:bg-red-50 p-2 rounded"><FaTrash /></button>
+//                                 </td>
+//                             </tr>
+//                         ))}
+//                     </tbody>
+//                 </table>
+//             </div>
+//         </div>
+//     );
+// };
 
 // 3. KRITERIA VIEW
 const ViewKriteria = () => {

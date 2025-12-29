@@ -5,6 +5,7 @@ import authRoutes from "./authRoutes.js"; // <--- Pastikan ini ada
 import bukuRoutes from "./bukuRoutes.js";
 import userRoutes from "./userRoutes.js";
 import kriteriaRoutes from "./kriteriaRoutes.js";
+import { getNilaiByBuku, updateNilaiBuku } from "../controllers/NilaiController.js"; // Import baru
 
 // 2. Import Controller Manual
 import { hitungSAW } from "../controllers/SPKController.js";
@@ -34,6 +35,9 @@ router.get('/hitung-saw', hitungSAW);
 router.post('/laporan', simpanLaporan);
 router.get('/laporan', getLaporan);
 router.delete('/laporan/:id', hapusLaporan);
+
+router.get('/nilai/:id_buku', verifyToken, getNilaiByBuku);  // Ambil data nilai buku A
+router.post('/nilai/:id_buku', verifyToken, updateNilaiBuku); // Simpan data nilai buku A
 
 export default router;
 
