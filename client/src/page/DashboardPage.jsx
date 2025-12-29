@@ -456,131 +456,253 @@ const ViewKriteria = () => {
 const ViewHitungSAW = () => {
     const [hasil, setHasil] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [bestOption, setBestOption] = useState(null); // Simpan Juara 1
 
-    // Fungsi untuk memanggil perhitungan dari Backend
     const hitungSAW = async () => {
         setLoading(true);
         try {
             const res = await api.get('/hitung-saw');
-            // Backend biasanya return { status, data: [...] } atau langsung array
-            // Sesuaikan dengan respon backend SPKController kamu
             const dataHasil = res.data.data || res.data; 
             setHasil(dataHasil);
+
+            // Ambil Juara 1 buat Rekomendasi
+            if (dataHasil.length > 0) {
+                setBestOption(dataHasil[0]);
+            }
             
             Swal.fire({
                 icon: 'success',
-                title: 'Perhitungan Selesai!',
-                text: 'Data berhasil diurutkan berdasarkan nilai preferensi tertinggi.',
-                timer: 1500,
+                title: 'Analisa Selesai!',
+                timer: 1000,
                 showConfirmButton: false
             });
         } catch (err) {
             console.error(err);
-            Swal.fire('Error', 'Gagal menghitung SAW. Pastikan data Kriteria & Buku tidak kosong/nilai 0.', 'error');
+            Swal.fire('Error', 'Gagal menghitung SAW.', 'error');
         } finally {
             setLoading(false);
         }
     };
 
-    // Jalankan hitung otomatis saat menu dibuka
-    useEffect(() => {
-        hitungSAW();
-    }, []);
+    useEffect(() => { hitungSAW(); }, []);
 
     // Fungsi Simpan ke Laporan
     const handleSimpanLaporan = async () => {
-        if (hasil.length === 0) return Swal.fire('Data Kosong', 'Tidak ada hasil untuk disimpan.', 'warning');
-
+        if (hasil.length === 0) return Swal.fire('Data Kosong', 'Tidak ada hasil.', 'warning');
         const { value: judul } = await Swal.fire({
             title: 'Simpan Laporan',
             input: 'text',
-            inputLabel: 'Berikan Judul/Keterangan Laporan',
-            inputPlaceholder: 'Contoh: Laporan Periode Januari 2024',
-            showCancelButton: true,
-            inputValidator: (value) => {
-                if (!value) return 'Judul tidak boleh kosong!';
-            }
+            inputLabel: 'Berikan Judul Laporan',
+            inputPlaceholder: 'Contoh: Rekomendasi Buku Terbaik 2024',
+            showCancelButton: true
         });
-
         if (judul) {
             try {
-                // Kirim data hasil ranking (JSON) ke tabel laporan
-                await api.post('/laporan', {
-                    keterangan: judul,
-                    data_json: JSON.stringify(hasil) // Array hasil dikonversi jadi string JSON
-                });
-                Swal.fire('Berhasil', 'Laporan telah disimpan ke database.', 'success');
+                await api.post('/laporan', { keterangan: judul, data_json: JSON.stringify(hasil) });
+                Swal.fire('Berhasil', 'Laporan disimpan.', 'success');
             } catch (error) {
-                Swal.fire('Gagal', 'Gagal menyimpan laporan.', 'error');
+                Swal.fire('Gagal', 'Gagal menyimpan.', 'error');
             }
         }
     };
 
     return (
-        <div className="bg-white p-6 rounded-2xl shadow-sm">
-            <div className="flex justify-between items-center mb-6">
-                <div>
-                    <h2 className="text-2xl font-bold text-gray-800">Hasil Perhitungan SAW</h2>
-                    <p className="text-sm text-gray-500">Sistem otomatis mengurutkan buku terbaik.</p>
-                </div>
-                <div className="flex gap-2">
-                    <button 
-                        onClick={hitungSAW} 
-                        disabled={loading}
-                        className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2"
-                    >
-                        {loading ? <span className="animate-spin">↻</span> : <FaCalculator />} 
-                        Hitung Ulang
-                    </button>
-                    <button 
-                        onClick={handleSimpanLaporan} 
-                        className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center gap-2"
-                    >
-                        <FaSave /> Simpan Laporan
-                    </button>
-                </div>
-            </div>
+        <div className="space-y-6">
+            
+            {/* --- BAGIAN 1: KOTAK SARAN / REKOMENDASI (INI YANG BARU) --- */}
+            {bestOption && (
+                <motion.div 
+                    initial={{ scale: 0.9, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl p-6 text-white shadow-xl relative overflow-hidden"
+                >
+                    {/* Hiasan Background */}
+                    <div className="absolute top-0 right-0 -mt-4 -mr-4 w-32 h-32 bg-white opacity-10 rounded-full blur-2xl"></div>
+                    
+                    <div className="relative z-10 flex flex-col md:flex-row items-center gap-6">
+                        <div className="bg-white/20 p-4 rounded-full backdrop-blur-sm">
+                            <FaCalculator className="text-4xl text-yellow-300" />
+                        </div>
+                        <div className="flex-1 text-center md:text-left">
+                            <h3 className="text-sm font-bold uppercase tracking-widest text-indigo-200 mb-1">
+                                KEPUTUSAN SISTEM (SAW)
+                            </h3>
+                            <h2 className="text-3xl font-bold mb-2">
+                                Rekomendasi Utama: <span className="text-yellow-300">"{bestOption.judul_buku}"</span>
+                            </h2>
+                            <p className="text-indigo-100 text-sm leading-relaxed">
+                                Berdasarkan perhitungan algoritma SAW, buku ini memiliki nilai preferensi tertinggi 
+                                (<strong>{bestOption.total_nilai}</strong>). Buku ini unggul dalam kriteria yang memiliki bobot terbesar.
+                            </p>
+                        </div>
+                        
+                        {/* Tombol Aksi Cepat */}
+                        <div className="flex flex-col gap-2 min-w-[150px]">
+                            <button className="bg-white text-indigo-700 font-bold py-2 px-4 rounded-lg hover:bg-indigo-50 transition shadow-lg text-sm">
+                                Lihat Detail
+                            </button>
+                            {/* Tampilkan Runner Up (Juara 2) kalau ada */}
+                            {hasil.length > 1 && (
+                                <div className="text-xs text-center text-indigo-200 mt-2">
+                                    Alternatif ke-2: <br/> 
+                                    <strong>{hasil[1].judul_buku}</strong>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </motion.div>
+            )}
 
-            {/* Tabel Ranking */}
-            <div className="overflow-x-auto border rounded-xl">
-                <table className="w-full text-left border-collapse">
-                    <thead className="bg-slate-800 text-white">
-                        <tr>
-                            <th className="p-3 text-center w-20">Rank</th>
-                            <th className="p-3">Judul Buku</th>
-                            <th className="p-3">Penulis</th>
-                            <th className="p-3 text-right">Nilai Preferensi (V)</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y">
-                        {hasil.length > 0 ? (
-                            hasil.map((item, index) => (
-                                <tr key={index} className={`hover:bg-gray-50 ${item.rank === 1 ? 'bg-yellow-50' : ''}`}>
-                                    <td className="p-3 text-center font-bold">
-                                        {item.rank === 1 ? '🥇 1' : 
-                                         item.rank === 2 ? '🥈 2' : 
-                                         item.rank === 3 ? '🥉 3' : item.rank}
+            {/* --- BAGIAN 2: TABEL SEPERTI BIASA --- */}
+            <div className="bg-white p-6 rounded-2xl shadow-sm">
+                <div className="flex justify-between items-center mb-6">
+                    <h2 className="text-xl font-bold text-gray-800">Rincian Perhitungan</h2>
+                    <div className="flex gap-2">
+                        <button onClick={hitungSAW} disabled={loading} className="bg-gray-100 text-gray-600 px-4 py-2 rounded-lg hover:bg-gray-200 flex items-center gap-2 text-sm">
+                            {loading ? '...' : <FaCalculator />} Refresh
+                        </button>
+                        <button onClick={handleSimpanLaporan} className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center gap-2 text-sm">
+                            <FaSave /> Simpan
+                        </button>
+                    </div>
+                </div>
+
+                <div className="overflow-x-auto border rounded-xl">
+                    <table className="w-full text-left border-collapse">
+                        <thead className="bg-slate-800 text-white text-sm">
+                            <tr>
+                                <th className="p-3 text-center w-16">Rank</th>
+                                <th className="p-3">Judul Buku</th>
+                                <th className="p-3">Penulis</th>
+                                <th className="p-3 text-right">Skor (V)</th>
+                                <th className="p-3 text-center">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y text-sm">
+                            {hasil.map((item, index) => (
+                                <tr key={index} className={`hover:bg-gray-50 ${item.rank === 1 ? 'bg-indigo-50' : ''}`}>
+                                    <td className="p-3 text-center">
+                                        {item.rank === 1 ? <span className="text-2xl">🥇</span> : 
+                                         item.rank === 2 ? <span className="text-xl">🥈</span> : 
+                                         item.rank === 3 ? <span className="text-xl">🥉</span> : `#${item.rank}`}
                                     </td>
-                                    <td className="p-3 font-medium">{item.judul_buku}</td>
-                                    <td className="p-3 text-gray-600">{item.penulis}</td>
-                                    <td className="p-3 text-right font-bold text-blue-600">
-                                        {typeof item.total_nilai === 'number' ? item.total_nilai.toFixed(4) : item.total_nilai}
+                                    <td className="p-3 font-semibold text-gray-700">
+                                        {item.judul_buku}
+                                        {item.rank === 1 && <span className="ml-2 px-2 py-0.5 bg-indigo-100 text-indigo-700 text-[10px] rounded-full uppercase font-bold">Sangat Disarankan</span>}
+                                    </td>
+                                    <td className="p-3 text-gray-500">{item.penulis}</td>
+                                    <td className="p-3 text-right font-mono font-bold text-blue-600">
+                                        {item.total_nilai}
+                                    </td>
+                                    <td className="p-3 text-center">
+                                        {item.rank <= 3 ? (
+                                            <span className="text-green-600 font-bold text-xs">Layak Dipilih</span>
+                                        ) : (
+                                            <span className="text-gray-400 text-xs">Alternatif</span>
+                                        )}
                                     </td>
                                 </tr>
-                            ))
-                        ) : (
-                            <tr>
-                                <td colSpan="4" className="p-8 text-center text-gray-400">
-                                    {loading ? 'Sedang menghitung...' : 'Data tidak tersedia. Cek data Buku & Kriteria.'}
-                                </td>
-                            </tr>
-                        )}
-                    </tbody>
-                </table>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     );
 };
+//     const handleSimpanLaporan = async () => {
+//         if (hasil.length === 0) return Swal.fire('Data Kosong', 'Tidak ada hasil untuk disimpan.', 'warning');
+
+//         const { value: judul } = await Swal.fire({
+//             title: 'Simpan Laporan',
+//             input: 'text',
+//             inputLabel: 'Berikan Judul/Keterangan Laporan',
+//             inputPlaceholder: 'Contoh: Laporan Periode Januari 2024',
+//             showCancelButton: true,
+//             inputValidator: (value) => {
+//                 if (!value) return 'Judul tidak boleh kosong!';
+//             }
+//         });
+
+//         if (judul) {
+//             try {
+//                 // Kirim data hasil ranking (JSON) ke tabel laporan
+//                 await api.post('/laporan', {
+//                     keterangan: judul,
+//                     data_json: JSON.stringify(hasil) // Array hasil dikonversi jadi string JSON
+//                 });
+//                 Swal.fire('Berhasil', 'Laporan telah disimpan ke database.', 'success');
+//             } catch (error) {
+//                 Swal.fire('Gagal', 'Gagal menyimpan laporan.', 'error');
+//             }
+//         }
+//     };
+
+//     return (
+//         <div className="bg-white p-6 rounded-2xl shadow-sm">
+//             <div className="flex justify-between items-center mb-6">
+//                 <div>
+//                     <h2 className="text-2xl font-bold text-gray-800">Hasil Perhitungan SAW</h2>
+//                     <p className="text-sm text-gray-500">Sistem otomatis mengurutkan buku terbaik.</p>
+//                 </div>
+//                 <div className="flex gap-2">
+//                     <button 
+//                         onClick={hitungSAW} 
+//                         disabled={loading}
+//                         className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2"
+//                     >
+//                         {loading ? <span className="animate-spin">↻</span> : <FaCalculator />} 
+//                         Hitung Ulang
+//                     </button>
+//                     <button 
+//                         onClick={handleSimpanLaporan} 
+//                         className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center gap-2"
+//                     >
+//                         <FaSave /> Simpan Laporan
+//                     </button>
+//                 </div>
+//             </div>
+
+//             {/* Tabel Ranking */}
+//             <div className="overflow-x-auto border rounded-xl">
+//                 <table className="w-full text-left border-collapse">
+//                     <thead className="bg-slate-800 text-white">
+//                         <tr>
+//                             <th className="p-3 text-center w-20">Rank</th>
+//                             <th className="p-3">Judul Buku</th>
+//                             <th className="p-3">Penulis</th>
+//                             <th className="p-3 text-right">Nilai Preferensi (V)</th>
+//                         </tr>
+//                     </thead>
+//                     <tbody className="divide-y">
+//                         {hasil.length > 0 ? (
+//                             hasil.map((item, index) => (
+//                                 <tr key={index} className={`hover:bg-gray-50 ${item.rank === 1 ? 'bg-yellow-50' : ''}`}>
+//                                     <td className="p-3 text-center font-bold">
+//                                         {item.rank === 1 ? '🥇 1' : 
+//                                          item.rank === 2 ? '🥈 2' : 
+//                                          item.rank === 3 ? '🥉 3' : item.rank}
+//                                     </td>
+//                                     <td className="p-3 font-medium">{item.judul_buku}</td>
+//                                     <td className="p-3 text-gray-600">{item.penulis}</td>
+//                                     <td className="p-3 text-right font-bold text-blue-600">
+//                                         {typeof item.total_nilai === 'number' ? item.total_nilai.toFixed(4) : item.total_nilai}
+//                                     </td>
+//                                 </tr>
+//                             ))
+//                         ) : (
+//                             <tr>
+//                                 <td colSpan="4" className="p-8 text-center text-gray-400">
+//                                     {loading ? 'Sedang menghitung...' : 'Data tidak tersedia. Cek data Buku & Kriteria.'}
+//                                 </td>
+//                             </tr>
+//                         )}
+//                     </tbody>
+//                 </table>
+//             </div>
+//         </div>
+//     );
+// };
 
 // 5. LAPORAN VIEW
 // GANTI ViewLaporan dengan yang ini biar detailnya rapi
