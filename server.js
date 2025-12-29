@@ -1,97 +1,79 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import cookieParser from "cookie-parser"; // Pastikan install: npm install cookie-parser
 import db from "./config/database.js";
-import router from "./routes/index.js"; // Pastikan route utama kamu ada di sini
+import router from "./routes/index.js";
 
 dotenv.config();
-const PORT = process.env.PORT || 5000;
 const app = express();
+const PORT = process.env.PORT || 5000;
 
+// --- 1. SETTING CORS (VERSI AMAN VERCEL) ---
+// Kita deklarasikan dulu whitelist domainnya
+const allowedOrigins = [
+    'http://localhost:5173',               // Localhost Frontend
+    'https://spk-frontend-eta.vercel.app', // Domain Vercel Frontend Kamu
+    'http://localhost:5000'                // Localhost Backend (Jaga-jaga)
+];
 
-// --- SETTING CORS BARU ---
-// Kita pakai origin function biar dinamis dan aman
-app.use(cors({
+const corsOptions = {
     origin: function (origin, callback) {
-        // Izinkan request dari mana saja (asal bukan bot aneh)
-        // atau izinkan jika originnya sesuai link frontend kamu
-        const allowedOrigins = [
-            'http://localhost:5173', 
-            'https://spk-frontend-eta.vercel.app'
-        ];
-        
-        // !origin artinya request dari server-to-server (bukan browser), kita izinkan
+        // !origin = request dari server-to-server atau tools kayak Postman (kita izinkan)
         if (!origin || allowedOrigins.indexOf(origin) !== -1) {
             callback(null, true);
         } else {
+            console.log("Blocked by CORS:", origin); // Bantu debug di log Vercel
             callback(new Error('Not allowed by CORS'));
         }
-        
     },
-    credentials: true, // Izinkan cookie/token
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
-}));
+    credentials: true, // Izinkan cookie/token lewat
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Izinkan method ini
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept']
+};
 
-// MENANGANI PREFLIGHT REQUEST (PENTING BUAT VERCEL)
-app.options('/(.*)', cors()); 
+// Pasang CORS di urutan PERTAMA middleware
+// app.use(cors(corsOptions)) otomatis menangani Preflight Request (OPTIONS).
+// Jadi kita TIDAK BUTUH app.options('/(.*)', ...) yang bikin error regex kemarin.
+app.use(cors(corsOptions));
 
-// ... lanjut middleware express.json dll ...
 
-
-
-// --- 1. MIDDLEWARE ---
-
-// Izinkan Frontend (Vite) mengakses Backend ini
-// Origin 'http://localhost:5173' adalah port default Vite. 
-// Kalau port Vite kamu beda, sesuaikan di sini.
-// app.use(cors({
-//     origin: [
-//         'http://localhost:5173', 
-//         'https://spk-frontend-eta.vercel.app' // 
-//     ], 
-//     credentials: true,
-//     methods: ['GET', 'POST', 'PUT', 'DELETE']
-// }));
-
-// app.use(cors({
-//     // Izinkan Frontend Vercel DAN Localhost
-//     origin: true, 
-//     credentials: true
-// }));
-
-// Agar backend bisa membaca data JSON yang dikirim dari Frontend
-// app.use(express.json());
-app.use(express.json({ limit: '10mb' })); 
+// --- 2. MIDDLEWARE LAINNYA ---
+app.use(cookieParser()); // Wajib buat baca cookie refresh token
+app.use(express.json({ limit: '10mb' })); // Limit besar buat upload gambar
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 
-// --- 2. ROUTING ---
-
-// Gunakan semua route yang sudah kita definisikan di routes/index.js
+// --- 3. ROUTING ---
 app.use(router);
 
+// Route Root (Opsional, buat ngecek server nyala atau nggak di browser)
+app.get('/', (req, res) => {
+    res.send('Backend SPK Berjalan! 🚀');
+});
 
-// --- 3. CEK KONEKSI DATABASE (Opsional tapi Bagus) ---
 
-const testConnection = async () => {
+// --- 4. CEK DATABASE (Opsional) ---
+(async () => {
     try {
-        // Coba minta satu koneksi dari pool
         const connection = await db.getConnection();
         console.log("✅ Database Connected Successfully!");
-        connection.release(); // Kembalikan koneksi ke pool
+        connection.release();
     } catch (error) {
         console.error("❌ Database Connection Failed:", error.message);
     }
-};
-
-testConnection();
+})();
 
 
-// --- 4. JALANKAN SERVER ---
+// --- 5. JALANKAN SERVER ---
 
+// PENTING: Logic ini membedakan Localhost vs Vercel
 if (process.env.NODE_ENV !== 'production') {
+    // Kalau di Laptop (Localhost), kita butuh app.listen
     app.listen(PORT, () => {
         console.log(`🚀 Server running locally on port ${PORT}`);
     });
 }
+
+// TAPI DI VERCEL, KITA WAJIB EXPORT APP
+export default app;
