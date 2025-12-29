@@ -1,5 +1,5 @@
 import express from "express";
-import { getKriteria, createKriteria, updateKriteria, deleteKriteria } from "../controllers/KriteriaController.js";
+import { getKriteria, createKriteria, updateKriteria, deleteKriteria } from "../controllers/kriteriaController.js";
 import { verifyToken } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
