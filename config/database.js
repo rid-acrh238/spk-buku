@@ -6,7 +6,7 @@ dotenv.config();
 const db = mysql.createPool({
     host: process.env.DB_HOST,       // Pastikan ini Host TiDB
     user: process.env.DB_USER,       // User TiDB
-    password: process.env.DB_PASSWORD, // Password TiDB
+    password: 'IhKGDyvFNqy9DkQw', // Password TiDB
     database: process.env.DB_NAME,   // Nama Database
     
     // ⚠️ PAKSA PORT 4000 (Jaga-jaga kalau Env Var salah)
