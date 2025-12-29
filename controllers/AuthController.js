@@ -49,7 +49,9 @@ export const Login = async (req, res) => {
         // Kirim Cookie (Biar aman)
         res.cookie('refreshToken', refreshToken, {
             httpOnly: true,
-            maxAge: 24 * 60 * 60 * 1000 // 1 Hari
+            maxAge: 24 * 60 * 60 * 1000, // 1 Hari
+            secure: true,        // Wajib TRUE karena Vercel pakai HTTPS
+            sameSite: 'none'
         });
 
         console.log("✅ Login Sukses:", username);
