@@ -1,6 +1,6 @@
 import express from "express";
 // Perhatikan huruf 'u' kecil di awal, sesuai tree folder kamu
-import { getUsers, createUser, updateUser, deleteUser } from "../controllers/UserController.js"; 
+import { getUsers, createUser, updateUser, deleteUser } from "../controllers/userController.js"; 
 import { verifyToken } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
