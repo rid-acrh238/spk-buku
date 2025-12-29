@@ -13,7 +13,7 @@ const PORT = process.env.PORT || 5000;
 // Kita deklarasikan dulu whitelist domainnya
 const allowedOrigins = [
     'http://localhost:5173',               // Localhost Frontend
-    'https://spk-frontend-eta.vercel.app', // Domain Vercel Frontend Kamu
+    'https://spk-bukufe.vercel.app', // Domain Vercel Frontend Kamu
     'http://localhost:5000'                // Localhost Backend (Jaga-jaga)
 ];
 
